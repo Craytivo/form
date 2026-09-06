@@ -11,7 +11,19 @@ export const SERVICE_OPTIONS = [
 // the final version before commercial reliance, especially for unusual or high-value engagements.
 const money = value => new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(Number(value || 0));
 const date = value => value ? new Date(`${value}T12:00:00`).toLocaleDateString('en-CA', { year:'numeric', month:'long', day:'numeric' }) : '________________';
-const yesNo = value => value ? 'Yes' : 'No';
+
+const legacyPerformance = contract => ({
+  date: contract.eventDate || '', venue: contract.venue || '', location: contract.location || '',
+  performanceTime: contract.performanceTime || '', callTime: contract.callTime || '', duration: contract.duration || '',
+  sets: contract.sets || '1', breakMinutes: contract.breakMinutes || '',
+  soundcheckIncluded: contract.soundcheckIncluded !== false, soundcheckMinutes: contract.soundcheckMinutes || '30'
+});
+
+export function getPerformanceSchedule(contract) {
+  return Array.isArray(contract.performances) && contract.performances.length
+    ? contract.performances
+    : [legacyPerformance(contract)];
+}
 
 export function calculate(contract) {
   const rehearsalHours = (contract.rehearsals || []).reduce((sum, r) => sum + Number(r.hours || 0), 0);
@@ -27,14 +39,19 @@ export function calculate(contract) {
 
 export function validateContract(contract) {
   const required = [];
+  const schedule = getPerformanceSchedule(contract);
   if (!contract.clientName?.trim()) required.push('Client / organization');
   if (!contract.clientEmail?.trim()) required.push('Client email');
   if (!contract.artistName?.trim()) required.push('Artist name');
-  if (!contract.eventName?.trim()) required.push('Event name');
-  if (!contract.eventDate) required.push('Event date');
-  if (!contract.performanceTime) required.push('Performance time');
-  if (!contract.venue?.trim()) required.push('Venue');
-  if (!contract.location?.trim()) required.push('City / location');
+  if (!contract.eventName?.trim()) required.push('Event / tour name');
+  if (!schedule.length) required.push('At least one performance date');
+  schedule.forEach((p, index) => {
+    const label = schedule.length > 1 ? `Performance ${index + 1}` : 'Performance';
+    if (!p.date) required.push(`${label} date`);
+    if (!p.performanceTime) required.push(`${label} time`);
+    if (!p.venue?.trim()) required.push(`${label} venue`);
+    if (!p.location?.trim()) required.push(`${label} city / location`);
+  });
   if (Number(contract.performanceFee || 0) <= 0) required.push('Performance fee');
   if (Number(contract.rehearsalRate || 0) < 0) required.push('Rehearsal rate');
   if (Number(contract.overtimeRate || 0) <= 0) required.push('Overtime / additional time rate');
@@ -49,7 +66,7 @@ export function validateContract(contract) {
 
 function cancellationTerms(contract) {
   if (contract.cancellationSchedule === 'custom' && contract.cancellationCustom?.trim()) return contract.cancellationCustom.trim();
-  return `Unless the parties agree to a different written schedule, if the Client cancels: (a) more than 30 days before the event, any agreed non-refundable deposit and approved non-refundable expenses remain payable; (b) 30 days or fewer but more than 14 days before the event, 50% of the performance fee is payable; (c) 14 days or fewer but more than 72 hours before the event, 75% is payable; and (d) within 72 hours, on the event date, or by no-show, 100% is payable, plus approved non-refundable expenses already incurred. A postponement is not an automatic transfer of the booking: the Artist must agree in writing to the new date and confirm availability. The parties may agree in writing to apply an amount already paid toward a mutually accepted replacement date.`;
+  return `Unless the parties agree to a different written schedule, if the Client cancels any scheduled performance: (a) more than 30 days before the applicable performance date, any agreed non-refundable deposit and approved non-refundable expenses remain payable; (b) 30 days or fewer but more than 14 days before the applicable performance date, 50% of the applicable performance fee is payable; (c) 14 days or fewer but more than 72 hours before the applicable performance date, 75% is payable; and (d) within 72 hours, on the performance date, or by no-show, 100% is payable, plus approved non-refundable expenses already incurred. A postponement is not an automatic transfer of any scheduled date: the Artist must agree in writing to the new date and confirm availability. The parties may agree in writing to apply an amount already paid toward a mutually accepted replacement date.`;
 }
 
 function mediaTerms(contract) {
@@ -70,8 +87,11 @@ function mediaTerms(contract) {
 
 export function renderContract(contract) {
   const totals = calculate(contract);
+  const schedule = getPerformanceSchedule(contract);
+  const isTour = schedule.length > 1;
   const services = contract.services?.length ? contract.services.map(s => `<li>${escapeHtml(s)}</li>`).join('') : '<li>Vocal performance services</li>';
   const rehearsals = contract.rehearsals?.length ? contract.rehearsals.map(r => `<tr><td>${date(r.date)}</td><td>${r.start || '—'}</td><td>${r.end || '—'}</td><td>${Number(r.hours || 0).toFixed(1)}</td></tr>`).join('') : '<tr><td colspan="4">No rehearsals specified.</td></tr>';
+  const scheduleRows = schedule.map((p, index) => `<tr><td>${index + 1}</td><td>${date(p.date)}</td><td>${escapeHtml(p.venue || '—')}</td><td>${escapeHtml(p.location || '—')}</td><td>${escapeHtml(p.performanceTime || '—')}</td><td>${escapeHtml(p.callTime || '—')}</td><td>${escapeHtml(p.duration || '—')}</td></tr>`).join('');
   const travelItems = [
     contract.travelProvided ? 'Client-provided transportation' : '',
     contract.accommodationProvided ? `${contract.singleOccupancy ? 'Single-occupancy' : 'Agreed'} accommodation provided by Client` : '',
@@ -85,18 +105,18 @@ export function renderContract(contract) {
 
   return `<article class="contract-paper">
     <header class="contract-header">
-      <div><div class="eyebrow">VOCAL ARTIST AGREEMENT</div><h1>Performance Agreement</h1><p class="document-subtitle">Professional engagement terms</p></div>
+      <div><div class="eyebrow">VOCAL ARTIST AGREEMENT</div><h1>${isTour ? 'Tour Performance Agreement' : 'Performance Agreement'}</h1><p class="document-subtitle">Professional engagement terms${isTour ? ' · Multi-date / multi-venue schedule' : ''}</p></div>
       <div class="contract-number">${escapeHtml(contract.number || 'DRAFT')}<br><span>${contract.status === 'finalized' ? 'FINALIZED' : 'DRAFT'}</span></div>
     </header>
     <div class="contract-notice"><strong>Important:</strong> This Agreement records the parties’ specific booking terms. It does not waive rights that cannot lawfully be waived.</div>
 
-    <section><h2>1. Parties & engagement</h2><p>This Vocal Artist Agreement (the “Agreement”) is entered into between <strong>${escapeHtml(contract.clientName || 'Client')}</strong> (the “Client”) and <strong>${escapeHtml(contract.artistName || 'Artist')}</strong> (the “Artist”).</p><p>The Artist will provide only the services expressly listed in this Agreement for <strong>${escapeHtml(contract.eventName || 'the Event')}</strong> on <strong>${date(contract.eventDate)}</strong> at <strong>${escapeHtml(contract.venue || 'the venue')}</strong>${contract.location ? ` in ${escapeHtml(contract.location)}` : ''}.</p><p><strong>Performance:</strong> ${escapeHtml(contract.performanceTime || 'To be confirmed')} &nbsp; <strong>Call time:</strong> ${escapeHtml(contract.callTime || 'To be confirmed')} &nbsp; <strong>Duration:</strong> ${escapeHtml(contract.duration || 'To be confirmed')} &nbsp; <strong>Sets:</strong> ${escapeHtml(contract.sets || '1')}</p>${contract.breakMinutes ? `<p><strong>Breaks:</strong> ${escapeHtml(contract.breakMinutes)} minutes between sets.</p>` : ''}</section>
+    <section><h2>1. Parties & engagement</h2><p>This Vocal Artist Agreement (the “Agreement”) is entered into between <strong>${escapeHtml(contract.clientName || 'Client')}</strong> (the “Client”) and <strong>${escapeHtml(contract.artistName || 'Artist')}</strong> (the “Artist”).</p><p>The Artist will provide only the services expressly listed in this Agreement for <strong>${escapeHtml(contract.eventName || 'the Event')}</strong>. ${isTour ? `The engagement consists of the ${schedule.length} scheduled performances listed below. Each listed date, venue, location and performance time is a separate scheduled performance under this Agreement.` : 'The engagement consists of the scheduled performance listed below.'}</p><table class="schedule-table"><thead><tr><th>#</th><th>Date</th><th>Venue</th><th>City / location</th><th>Performance</th><th>Call</th><th>Duration</th></tr></thead><tbody>${scheduleRows}</tbody></table><p>For each scheduled performance, the Artist’s included scope is limited to the services and time expressly stated. ${isTour ? 'Changes to one performance date, venue, location or time do not automatically change the other scheduled performances.' : ''}</p></section>
 
     <section><h2>2. Services & scope</h2><ul>${services}</ul><p>No additional performance, rehearsal, recording, media interview, promotional appearance, administrative work, travel duty, or other service is included unless agreed in writing. Material changes to scope, schedule, venue, repertoire, production requirements, or number of performances require written agreement and may result in additional compensation.</p></section>
 
-    <section><h2>3. Rehearsals & soundcheck</h2><table><thead><tr><th>Date</th><th>Start</th><th>End</th><th>Hours</th></tr></thead><tbody>${rehearsals}</tbody></table><p>Scheduled rehearsal hours are included only as shown. Additional rehearsal time is billed at <strong>${money(contract.rehearsalRate)}</strong> per hour. ${contract.soundcheckIncluded ? `Soundcheck of up to ${escapeHtml(contract.soundcheckMinutes || '30')} minutes is included.` : 'Soundcheck is not included unless separately agreed in writing.'} Any additional soundcheck or production call time is additional work.</p></section>
+    <section><h2>3. Rehearsals & soundcheck</h2><table><thead><tr><th>Date</th><th>Start</th><th>End</th><th>Hours</th></tr></thead><tbody>${rehearsals}</tbody></table><p>Scheduled rehearsal hours are included only as shown. Additional rehearsal time is billed at <strong>${money(contract.rehearsalRate)}</strong> per hour. ${schedule.some(p=>p.soundcheckIncluded !== false) ? `Soundcheck is included only for scheduled performances where it is marked as included, for the stated time.` : 'Soundcheck is not included unless separately agreed in writing.'} Any additional soundcheck or production call time is additional work.</p></section>
 
-    <section><h2>4. Compensation & payment</h2><table class="money-table"><tbody><tr><td>Performance fee</td><td>${money(contract.performanceFee)}</td></tr><tr><td>Rehearsals (${totals.rehearsalHours.toFixed(1)} hrs)</td><td>${money(totals.rehearsalTotal)}</td></tr><tr><td>Travel / expenses</td><td>${money(contract.travelAmount)}</td></tr><tr><td>Accommodation</td><td>${money(contract.accommodationAmount)}</td></tr>${contract.perDiem ? `<tr><td>Per diem / meals</td><td>${money(contract.perDiem)}</td></tr>`:''}${contract.parkingAmount ? `<tr><td>Parking / approved travel</td><td>${money(contract.parkingAmount)}</td></tr>`:''}${contract.mediaCompensation ? `<tr><td>Media compensation</td><td>${money(contract.mediaCompensation)}</td></tr>`:''}<tr class="total"><td>Total stated compensation</td><td>${money(totals.total)}</td></tr></tbody></table><p><strong>Deposit:</strong> ${contract.depositAmount ? `${money(contract.depositAmount)} due ${date(contract.depositDue)}` : 'No deposit specified.'}</p><p><strong>Balance:</strong> ${escapeHtml(contract.balanceDue || 'Event date')}. Undisputed amounts are not subject to unilateral deductions, offsets, or chargebacks.</p><p>Payment processing fees, wire fees, bank charges, and similar costs are the Client’s responsibility unless expressly agreed otherwise. The Artist may pause or decline additional services where undisputed amounts are overdue.</p></section>
+    <section><h2>4. Compensation & payment</h2><table class="money-table"><tbody><tr><td>Performance fee${isTour ? ` (${schedule.length} scheduled performances)` : ''}</td><td>${money(contract.performanceFee)}</td></tr><tr><td>Rehearsals (${totals.rehearsalHours.toFixed(1)} hrs)</td><td>${money(totals.rehearsalTotal)}</td></tr><tr><td>Travel / expenses</td><td>${money(contract.travelAmount)}</td></tr><tr><td>Accommodation</td><td>${money(contract.accommodationAmount)}</td></tr>${contract.perDiem ? `<tr><td>Per diem / meals</td><td>${money(contract.perDiem)}</td></tr>`:''}${contract.parkingAmount ? `<tr><td>Parking / approved travel</td><td>${money(contract.parkingAmount)}</td></tr>`:''}${contract.mediaCompensation ? `<tr><td>Media compensation</td><td>${money(contract.mediaCompensation)}</td></tr>`:''}<tr class="total"><td>Total stated compensation</td><td>${money(totals.total)}</td></tr></tbody></table><p><strong>Deposit:</strong> ${contract.depositAmount ? `${money(contract.depositAmount)} due ${date(contract.depositDue)}` : 'No deposit specified.'}</p><p><strong>Balance:</strong> ${escapeHtml(contract.balanceDue || 'Event date')}. Undisputed amounts are not subject to unilateral deductions, offsets, or chargebacks.</p><p>Unless a different allocation is expressly stated in writing, the performance fee covers the scheduled performances as a package and is not automatically reduced because one scheduled date is cancelled, shortened, relocated or otherwise changed. Cancellation compensation remains governed by Section 6.</p><p>Payment processing fees, wire fees, bank charges, and similar costs are the Client’s responsibility unless expressly agreed otherwise. The Artist may pause or decline additional services where undisputed amounts are overdue.</p></section>
 
     <section><h2>5. Overtime & additional time</h2><p>The Artist is engaged only for the periods specified in this Agreement. Extended performances, additional sets, extra rehearsals, extended soundcheck, waiting time caused by the Client or venue, additional performances, production delays attributable to the Client, or other requested work are additional services. Unless a different rate is agreed in writing, additional time is billed at <strong>${money(contract.overtimeRate)}</strong> per hour, with any partial hour billed proportionately or at the applicable minimum agreed by the parties. The Artist is not required to provide additional services without agreeing to the additional compensation.</p></section>
 
@@ -104,9 +124,9 @@ export function renderContract(contract) {
 
     <section><h2>7. Cancellation by Artist & force majeure</h2><p>The Artist may cancel or interrupt performance where circumstances outside the Artist’s reasonable control make performance impossible or unsafe, including serious illness, injury, emergency, transportation disruption, government restriction, venue closure, severe weather, natural disaster, epidemic or pandemic restrictions, fire, labour disruption, war, civil disorder, or similar force majeure events. Where reasonably possible, the Artist will provide prompt notice and the parties will make reasonable efforts to reschedule. The Artist will not be liable for consequential or indirect losses arising from a permitted cancellation or interruption.</p></section>
 
-    <section><h2>8. Venue, production & safety</h2><p>The Client is responsible for a lawful, safe, professional and reasonably suitable working environment, including required permits, licences, insurance, equipment, staffing, security, access, stage conditions, sound support and venue operations. The Artist may refuse or stop work if conditions present a reasonable risk to health or safety or if the Artist is subjected to harassment, discrimination, threats, violence, or unsafe working conditions. A safety-related interruption does not constitute a breach by the Artist.</p>${contract.dressingRoomRequired ? '<p><strong>Dressing / private preparation space:</strong> Client will provide a clean, reasonably secure and appropriate dressing or preparation area.</p>' : ''}${safety}${contract.venueContact || contract.productionContact ? `<p><strong>Contacts:</strong> ${escapeHtml(contract.venueContact || 'Venue contact not provided')}${contract.productionContact ? `; ${escapeHtml(contract.productionContact)}` : ''}.</p>` : ''}</section>
+    <section><h2>8. Venue, production & safety</h2><p>The Client is responsible for a lawful, safe, professional and reasonably suitable working environment for every scheduled performance, including required permits, licences, insurance, equipment, staffing, security, access, stage conditions, sound support and venue operations. The Artist may refuse or stop work if conditions present a reasonable risk to health or safety or if the Artist is subjected to harassment, discrimination, threats, violence, or unsafe working conditions. A safety-related interruption does not constitute a breach by the Artist.</p>${contract.dressingRoomRequired ? '<p><strong>Dressing / private preparation space:</strong> Client will provide a clean, reasonably secure and appropriate dressing or preparation area for each scheduled performance where applicable.</p>' : ''}${safety}${contract.venueContact || contract.productionContact ? `<p><strong>Primary contacts:</strong> ${escapeHtml(contract.venueContact || 'Venue contact not provided')}${contract.productionContact ? `; ${escapeHtml(contract.productionContact)}` : ''}.</p>` : ''}</section>
 
-    <section><h2>9. Travel, accommodation & expenses</h2>${travelItems.length ? `<ul>${travelItems.map(x=>`<li>${escapeHtml(x)}</li>`).join('')}</ul>` : '<p>No separate travel arrangements are specified; only stated travel/expense amounts are included.'}<p>Unless expressly included in the performance fee, agreed travel, transportation, parking, accommodation, meals or per diem, baggage and approved engagement expenses are the Client’s responsibility. Where overnight accommodation is required, the Artist will not be required to share accommodation with unrelated persons unless expressly agreed in writing.</p></section>
+    <section><h2>9. Travel, accommodation & expenses</h2>${travelItems.length ? `<ul>${travelItems.map(x=>`<li>${escapeHtml(x)}</li>`).join('')}</ul>` : '<p>No separate travel arrangements are specified; only stated travel/expense amounts are included.'}<p>Unless expressly included in the performance fee, agreed travel, transportation, parking, accommodation, meals or per diem, baggage and approved engagement expenses are the Client’s responsibility. Where overnight accommodation is required, the Artist will not be required to share accommodation with unrelated persons unless expressly agreed in writing. For multi-city engagements, travel time and logistics between scheduled cities are not performance time unless expressly stated otherwise.</p></section>
 
     <section><h2>10. Recording, media, AI & performance rights</h2><p>${escapeHtml(media)}</p><p>No payment for the live engagement alone transfers ownership of the Artist’s performance, voice, name, image, likeness, or unrelated creative work. Any broader recording, fixation, reproduction, broadcast, synchronization, advertising, endorsement, licensing, distribution, AI training, synthetic voice, digital replica, or other exploitation must be specifically authorized in writing and should state the media, territory, term, permitted purpose, compensation, and approval process.</p></section>
 
