@@ -1,0 +1,25 @@
+name: Repair App export
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'src/App.jsx'
+permissions:
+  contents: write
+jobs:
+  repair:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.head_commit.message != 'Repair missing App default export' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure App has default export
+        run: |
+          grep -q '^export default App;' src/App.jsx || printf '\nexport default App;\n' >> src/App.jsx
+      - name: Commit repair
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet; then exit 0; fi
+          git add src/App.jsx
+          git commit -m 'Repair missing App default export'
+          git push
