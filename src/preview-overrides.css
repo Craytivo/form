@@ -1,0 +1,16 @@
+/* Preview readability pass */
+.workspace{grid-template-columns:minmax(380px,470px) minmax(0,1fr)}
+.form-panel{padding:24px 24px}
+.preview-panel{padding:28px 28px 64px;min-width:0}
+.preview-label{max-width:900px;margin-bottom:12px}
+.contract-paper{width:min(100%,900px);padding:68px 76px;font-size:12.5px;line-height:1.85;letter-spacing:0}
+.contract-paper p,.contract-paper li,.contract-paper td,.contract-paper th{font-size:inherit;line-height:inherit}
+.contract-paper h1{font-size:28px}
+.contract-paper h2{font-size:15px}
+.contract-paper h3{font-size:13px}
+.contract-paper .contract-notice{font-size:10.5px;line-height:1.65}
+.contract-paper .contract-number{font-size:10px}
+.contract-paper .contract-number span{font-size:8.5px}
+@media (max-width:1100px){.workspace{grid-template-columns:minmax(350px,440px) minmax(0,1fr)}.contract-paper{padding:58px 60px;font-size:12px}}
+@media (max-width:820px){.workspace{grid-template-columns:1fr}.form-panel{border-right:0}.preview-panel{border-top:1px solid #dfe2e5}.contract-paper{width:100%;padding:44px 38px;font-size:12px}}
+@media print{.contract-paper{width:100%;padding:0;font-size:12.5px;box-shadow:none}}
