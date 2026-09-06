@@ -1,0 +1,55 @@
+/* Final premium pass: restrained, spacious, product-grade UI. */
+:root{--ink:#101216;--muted:#737880;--line:#e4e6e9;--panel:#fff;--canvas:#f5f6f8;--soft:#f0f1f3;--accent:#1b1d21}
+body{background:var(--canvas);color:var(--ink)}
+.topbar,.editor-bar{height:68px;box-shadow:0 1px 0 rgba(0,0,0,.08);position:relative;z-index:5}
+.topbar{padding:0 32px}
+.brand-mark{width:36px;height:36px;border-radius:10px;background:#17191d;border-color:#363a40;letter-spacing:-.03em}
+.brand strong{letter-spacing:-.2px}
+.primary,.secondary,.back{height:40px;border-radius:9px;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease,background .16s ease}
+.primary{box-shadow:0 2px 7px rgba(0,0,0,.12)}
+.primary:hover,.secondary:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.dashboard{max-width:1240px;padding:54px 32px 72px}
+.dash-heading{max-width:760px}
+.dash-heading h1{font-size:40px;line-height:1.08;margin-top:7px}
+.tabs{margin-top:34px;gap:24px}
+.tabs button{padding:15px 3px;gap:8px;position:relative}
+.tabs button.active:after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:#111;border-radius:2px}
+.tabs b{min-width:20px;text-align:center}
+.search{height:38px;border-radius:10px;box-shadow:0 1px 2px rgba(20,25,30,.03)}
+.contract-list,.overview-panel,.analytics-cards>button,.analytics-card,.empty{border-radius:14px;box-shadow:0 2px 12px rgba(20,25,30,.035)}
+.contract-row{padding:18px 20px;transition:background .15s ease,transform .15s ease}
+.contract-row:hover{background:#fafbfc}
+.doc-icon{width:40px;height:40px;border-radius:10px;background:#f0f1f3}
+.row-meta span{padding:5px 8px;border-radius:999px;background:#f0f1f3;display:inline-block;margin-bottom:4px}
+.analytics-cards{gap:14px}
+.analytics-cards>button,.analytics-card{min-height:140px;padding:20px}
+.analytics-cards strong,.analytics-card strong{font-size:32px}
+.overview-columns{gap:14px;margin-top:14px}
+.overview-panel{padding:22px}
+.upcoming-list button{padding:15px 0;transition:padding-left .15s ease}
+.upcoming-list button:hover{padding-left:4px}
+.editor-bar{padding:0 22px}
+.editor-title{padding-left:18px}
+.editor-actions{gap:7px;align-items:center}
+.status-control{height:40px;display:flex;align-items:center;gap:7px;padding:0 7px 0 11px;border:1px solid #34383e;border-radius:9px;background:#17191d;color:#fff}
+.status-control span{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#989da4;font-weight:700}
+.status-control select{border:0;outline:0;background:#17191d;color:#fff;font-size:12px;font-weight:700;padding:4px 20px 4px 2px;cursor:pointer}
+.status-control select option{background:#17191d;color:#fff}
+.workspace{grid-template-columns:minmax(430px,560px) 1fr}
+.form-panel{padding:28px 30px;background:#f4f5f7}
+.preview-panel{padding:36px 38px 80px;background:#e5e7ea}
+.preview-label{margin-bottom:15px}
+.field input,.field select,.form-section textarea{border-radius:9px;transition:border-color .15s ease,box-shadow .15s ease}
+.field input:hover,.field select:hover,.form-section textarea:hover{border-color:#c8ccd1}
+.field input:focus,.field select:focus,.form-section textarea:focus{border-color:#565b62;box-shadow:0 0 0 3px rgba(32,35,40,.07)}
+.form-section h2{font-size:13px;letter-spacing:-.1px}
+.service{border-radius:9px;transition:transform .15s ease,border-color .15s ease,background .15s ease}
+.service:hover{transform:translateY(-1px);border-color:#bfc3c8}
+.service.selected{box-shadow:0 3px 10px rgba(20,25,30,.1)}
+.performance-card{border-radius:11px;box-shadow:0 2px 8px rgba(20,25,30,.035)}
+.add-row{border-radius:9px;transition:border-color .15s ease,background .15s ease}
+.add-row:hover{border-color:#969ba2;background:#fafbfc}
+.strength-panel{border-radius:14px;box-shadow:0 3px 14px rgba(20,25,30,.05)}
+.contract-paper{box-shadow:0 24px 55px rgba(20,25,30,.14);border:1px solid rgba(20,25,30,.06)}
+@media(max-width:900px){.dashboard{padding:36px 20px}.analytics-cards{grid-template-columns:1fr 1fr}.workspace{grid-template-columns:1fr}.preview-panel{display:none}.editor-bar{padding:0 14px}.status-control span{display:none}.editor-actions .secondary:first-of-type{display:none}}
+@media(max-width:620px){.topbar{padding:0 16px}.brand span{display:none}.dash-heading h1{font-size:32px}.tabs{gap:14px;overflow:auto}.search{min-width:170px}.analytics-cards{grid-template-columns:1fr}.editor-title{display:none}.editor-actions{margin-left:auto}.editor-actions .secondary{padding:0 9px}.status-control{padding-left:8px}.form-panel{padding:22px 18px}.two{grid-template-columns:1fr}}
